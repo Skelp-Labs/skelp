@@ -3,7 +3,7 @@ export default function registerTerminalTools ({ onStream, readlineInterface, au
     type: 'function',
     function: {
       name: 'execute_command',
-      description: 'Runs a shell command on the local machine and returns CLI output. Must NOT be an interactive command.',
+      description: 'Runs a shell command on the local machine and returns CLI output. Must NOT be an interactive command. For Python packages, use a project-local virtual environment (for example: python3 -m venv .venv && .venv/bin/python -m pip install <package>) instead of installing globally.',
       parameters: {
         type: 'object',
         properties: {

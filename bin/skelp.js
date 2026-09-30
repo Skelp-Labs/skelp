@@ -4,15 +4,9 @@ import os from 'os'
 import path from 'path'
 import process, { stdin as input, stdout as output } from 'process'
 import fs from 'fs/promises'
-import readline from 'readline/promises'
 import { ArgumentParser } from 'argparse'
-import { createAgentLoop } from '../packages/agentloop/src/index.js'
-import { createOllamaClient } from '../packages/llm/ollama-client.js'
+import { runChat } from '../packages/chat/index.js'
 import { detectProvider } from '../packages/detect/detect-provider.js'
-import { createResponseRenderer, createToolRenderer } from '../packages/markdown/render-response.js'
-import { createChatLog } from '../packages/skelp/chat-log.js'
-import registerFsTools from '../packages/skills/filesystem/tools.js'
-import registerTerminalTools from '../packages/skills/terminal/tools.js'
 
 const configDirectory = path.join(os.homedir(), '.skelp')
 const configPath = path.join(configDirectory, 'config.json')
@@ -89,10 +83,6 @@ function parseArguments () {
   return parser.parse_args(rawArgs)
 }
 
-function createInterface () {
-  return readline.createInterface({ input, output })
-}
-
 async function runCommand (command, commandCwd, onStream, background = false) {
   const { exec } = await import('child_process')
   if (background) {
@@ -111,18 +101,6 @@ async function runCommand (command, commandCwd, onStream, background = false) {
   })
 }
 
-function createConfirmationHandler (rl, state) {
-  return async (command) => {
-    if (state.allowAll) return true
-    const answer = (await rl.question(`Allow '${command}'? [Y/n/a] `)).trim().toLowerCase()
-    if (answer === 'a') {
-      state.allowAll = true
-      return true
-    }
-    return answer === '' || answer === 'y' || answer === 'yes'
-  }
-}
-
 async function run (prompt, options = {}) {
   const config = await readConfig()
   if (config.server === 'auto') {
@@ -135,54 +113,9 @@ async function run (prompt, options = {}) {
       config.primaryModel = provider.model
     }
   }
-  const client = createOllamaClient(config)
-  const rl = createInterface()
   const cwd = path.resolve(options.cwd || process.cwd())
   const executionMode = options.executionMode || 'interactive'
-  const confirmationState = { allowAll: false }
-  const tools = [
-    ...registerFsTools({ cwd, readlineInterface: rl }),
-    ...registerTerminalTools({
-      cwd,
-      workspaceRoot: cwd,
-      readlineInterface: rl,
-      autoApprove: executionMode === 'autopilot' || config.autoApprove,
-      askForConfirmation: createConfirmationHandler(rl, confirmationState),
-      runCommand
-    })
-  ]
-  const agent = createAgentLoop({
-    client,
-    tools,
-    systemPrompt: [
-      config.tone,
-      config.userSystem,
-      `Execution mode: ${executionMode}. In autopilot mode, execute the requested plan without asking for confirmation. In interactive mode, ask before taking consequential actions.`
-    ].filter(Boolean).join('\n')
-  })
-  const chatLog = createChatLog({ prompt, config })
-  try {
-    const renderer = createResponseRenderer()
-    const tools = createToolRenderer()
-    try {
-      const result = await agent.executeGoal(prompt, (delta) => renderer.writeDelta(delta), {
-        onToolCall: (toolCall) => {
-          tools.onToolCall(toolCall)
-          return chatLog.writeToolCall({ ...toolCall, messages: agent.messages })
-        },
-        onToolResult: tools.onToolResult,
-        onStatus: tools.onStatus,
-        onStep: (step) => chatLog.writeStep(step)
-      })
-      renderer.end()
-      await chatLog.write(agent.messages, result)
-    } catch (error) {
-      await chatLog.write(agent.messages, null, error)
-      throw error
-    }
-  } finally {
-    rl.close()
-  }
+  return runChat({ prompt, config, cwd, executionMode, input, output, runCommand })
 }
 
 const args = parseArguments()
@@ -191,11 +124,9 @@ if (args.command === 'config') {
     console.error(`skelp: ${error.message}`)
     process.exitCode = 1
   })
-} else if (!args.prompt.length) {
-  console.error('Usage: skelp "your request"')
-  process.exitCode = 1
 } else {
-  run(args.prompt.join(' '), args).catch((error) => {
+  const prompt = args.prompt.join(' ')
+  run(prompt, { ...args, executionMode: prompt ? 'autopilot' : 'interactive' }).catch((error) => {
     console.error(`skelp: ${error.message}`)
     process.exitCode = 1
   })
