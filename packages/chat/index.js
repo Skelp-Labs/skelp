@@ -64,14 +64,15 @@ export async function runChat ({ prompt = '', config, cwd, executionMode = 'inte
       const toolRenderer = createToolRenderer()
       const chatLog = createChatLog({ prompt: instruction, config })
       try {
-        const result = await agent.executeGoal(instruction, (delta) => renderer.writeDelta(delta), {
+        const result = await agent.run([{ role: 'user', content: instruction }], {
           onToolCall: (toolCall) => {
             toolRenderer.onToolCall(toolCall)
             return chatLog.writeToolCall({ ...toolCall, messages: agent.messages })
           },
           onToolResult: toolRenderer.onToolResult,
           onStatus: toolRenderer.onStatus,
-          onStep: (step) => chatLog.writeStep(step)
+          onStep: (step) => chatLog.writeStep(step),
+          onDelta: (delta) => renderer.writeDelta(delta)
         })
         renderer.end()
         await chatLog.write(agent.messages, result)

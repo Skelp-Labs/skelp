@@ -60,7 +60,6 @@ export function createAgentLoop (options = {}) {
           handlers.set(`${tool.skillName}:${alias}`, tool.handler)
         }
       }
-      messages.length = 0
       messages.push(...inputMessages)
       if (systemPrompt) {
         if (messages[0]?.role === 'system') messages[0] = { ...messages[0], content: systemPrompt }
