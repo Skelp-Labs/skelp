@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Agent loop example</title>
+    <style>
+      :root { color-scheme: light; font: 16px/1.5 system-ui, sans-serif; }
+      body { max-width: 44rem; margin: 1rem auto; padding: 0 1rem; color: #17212b; }
+      label { display: grid; gap: .1rem; margin-top: .25rem; font-size: .7rem; color: #536574; }
+      #reset-config { justify-self: start; margin-top: .25rem; font-size: .7rem; }
+      form { display: flex; gap: .35rem; margin-top: .5rem; }
+      input, select, button { border: 1px solid #b6c2cc; border-radius: .25rem; padding: .25rem .4rem; font: inherit; }
+      label input, label select { font-size: .75rem; color: #17212b; }
+      input { flex: 1; }
+      button { background: #173f5f; color: white; cursor: pointer; }
+      #output { white-space: pre-wrap; min-height: 8rem; border-block: 1px solid #d9e0e5; padding: 1rem 0; }
+      #status { color: #536574; min-height: 1.5rem; }
+    </style>
+  </head>
+  <body>
+    <label>
+      API URL
+      <input id="api-url" value="http://localhost:1234/v1" autocomplete="url">
+    </label>
+    <label>
+      Model
+      <input id="model" value="local-model" autocomplete="off">
+    </label>
+    <label>
+      Reasoning effort
+      <select id="reasoning-effort">
+        <option value="">None</option>
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+      </select>
+    </label>
+    <button id="reset-config" type="button">Reset</button>
+    <div id="output"></div>
+    <div id="status"></div>
+    <form>
+      <input name="prompt" value="What time is it?" autocomplete="off">
+      <button>Send</button>
+    </form>
+    <script type="module">
+      import { createAgentLoop } from '../src/index.js';
+      import { createOpenAIClient } from './openai-client/openai-client.js';
+
+      const output = document.querySelector('#output');
+      const status = document.querySelector('#status');
+      const apiUrl = document.querySelector('#api-url');
+      const model = document.querySelector('#model');
+      const reasoningEffort = document.querySelector('#reasoning-effort');
+      const resetConfig = document.querySelector('#reset-config');
+      const form = document.querySelector('form');
+      const configKey = 'agent-loop-config';
+      const defaults = {
+        apiUrl: 'http://localhost:1234/v1',
+        model: 'local-model',
+        reasoningEffort: ''
+      };
+      const savedConfig = JSON.parse(localStorage.getItem(configKey) || '{}');
+      apiUrl.value = savedConfig.apiUrl || defaults.apiUrl;
+      model.value = savedConfig.model || defaults.model;
+      reasoningEffort.value = savedConfig.reasoningEffort ?? defaults.reasoningEffort;
+
+      resetConfig.addEventListener('click', () => {
+        localStorage.removeItem(configKey);
+        apiUrl.value = defaults.apiUrl;
+        model.value = defaults.model;
+        reasoningEffort.value = defaults.reasoningEffort;
+      });
+
+      const saveConfig = () => localStorage.setItem(configKey, JSON.stringify({
+        apiUrl: apiUrl.value.trim(),
+        model: model.value.trim(),
+        reasoningEffort: reasoningEffort.value
+      }));
+
+      const createAgent = () => createAgentLoop({
+        client: createOpenAIClient({
+          baseUrl: apiUrl.value.trim(),
+          model: model.value.trim(),
+          reasoningEffort: reasoningEffort.value
+        }),
+        systemPrompt: 'You are a concise browser assistant.',
+        tools: [{
+          type: 'function',
+          function: {
+            name: 'get_time',
+            description: 'Get the current local time.',
+            parameters: { type: 'object', properties: {}, additionalProperties: false }
+          },
+          handler: async () => new Date().toLocaleTimeString()
+        }]
+      });
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        saveConfig();
+        output.textContent = '';
+        status.textContent = 'Thinking...';
+        try {
+          await createAgent().run(new FormData(form).get('prompt'), {
+            onText: (text) => { output.textContent += text; },
+            onToolCall: ({ name }) => { status.textContent = `Running ${name}...`; },
+            onComplete: () => { status.textContent = 'Done'; }
+          });
+        } catch (error) {
+          status.textContent = error.message;
+        }
+      });
+    </script>
+  </body>
+</html>

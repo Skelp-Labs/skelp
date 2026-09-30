@@ -1,0 +1,21 @@
+{
+  "name": "@skelp/agentloop",
+  "version": "0.2.0",
+  "description": "Minimal agent loop",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "example:node": "node examples/node.js",
+    "test": "node --test",
+    "lint": "eslint . --ext .js,.mjs"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

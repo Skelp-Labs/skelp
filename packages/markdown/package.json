@@ -1,0 +1,13 @@
+{
+  "name": "@skelp/markdown",
+  "version": "1.0.0",
+  "description": "ANSI markdown formatter for Skelp terminals",
+  "main": "index.js",
+  "type": "module",
+  "exports": {
+    ".": "./index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
