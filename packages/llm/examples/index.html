@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>LLM streaming example</title>
+		<style>
+			:root { font: 16px/1.5 system-ui, sans-serif; color: #17212b; }
+			body { max-width: 44rem; margin: 1rem auto; padding: 0 1rem; }
+			label { display: grid; gap: .15rem; margin-top: .5rem; font-size: .8rem; }
+			input, textarea, button { box-sizing: border-box; border: 1px solid #b6c2cc; border-radius: .25rem; padding: .4rem; font: inherit; }
+			input, textarea { width: 100%; }
+			textarea { min-height: 5rem; resize: vertical; }
+			button { margin-top: .75rem; background: #173f5f; color: white; cursor: pointer; }
+			#cancel { margin-left: .35rem; background: #536574; }
+			button:disabled { cursor: wait; opacity: .6; }
+			#output { white-space: pre-wrap; min-height: 8rem; border-block: 1px solid #d9e0e5; margin-top: 1rem; padding: 1rem 0; }
+			#status { min-height: 1.5rem; color: #536574; }
+		</style>
+	</head>
+	<body>
+		<form>
+			<label>Server URL <input id="server" value="http://localhost:1234" autocomplete="url"></label>
+			<label>Model <input id="model" value="local-model" autocomplete="off"></label>
+			<label>Prompt <textarea id="prompt">Explain streaming responses in one sentence.</textarea></label>
+			<button type="submit">Send</button><button id="cancel" type="button" disabled>Cancel</button>
+		</form>
+		<div id="output"></div>
+		<div id="status"></div>
+
+		<script type="module">
+			import { createOpenAIClient } from '../openai-client.js';
+
+			const form = document.querySelector('form');
+			const server = document.querySelector('#server');
+			const model = document.querySelector('#model');
+			const prompt = document.querySelector('#prompt');
+			const output = document.querySelector('#output');
+			const status = document.querySelector('#status');
+			const button = form.querySelector('button');
+			const cancelButton = document.querySelector('#cancel');
+			let controller;
+			const configKey = 'llm-streaming-example-config';
+			const savedConfig = JSON.parse(localStorage.getItem(configKey) || '{}');
+			server.value = savedConfig.server || server.value;
+			model.value = savedConfig.model || model.value;
+
+			form.addEventListener('submit', async (event) => {
+				event.preventDefault();
+				output.textContent = '';
+				status.textContent = 'Streaming...';
+				button.disabled = true;
+				cancelButton.disabled = false;
+				controller = new AbortController();
+				localStorage.setItem(configKey, JSON.stringify({ server: server.value.trim(), model: model.value.trim() }));
+
+				try {
+					const client = createOpenAIClient({ server: server.value.trim(), primaryModel: model.value.trim() });
+					await client.chatCompletionStream({
+						messages: [{ role: 'user', content: prompt.value }],
+						onChunk: (delta) => { output.textContent += delta.content || ''; },
+						signal: controller.signal
+					});
+					status.textContent = 'Done';
+				} catch (error) {
+					status.textContent = controller.signal.aborted ? 'Cancelled' : error.message;
+				} finally {
+					button.disabled = false;
+					cancelButton.disabled = true;
+					controller = undefined;
+				}
+			});
+
+			cancelButton.addEventListener('click', () => controller?.abort());
+		</script>
+	</body>
+</html>

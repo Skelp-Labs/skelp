@@ -1,0 +1,19 @@
+{
+  "name": "skelp",
+  "version": "0.1.0",
+  "description": "A minimal developer shell powered by an OpenAI-compatible model.",
+  "type": "module",
+  "bin": {
+    "skelp": "bin/skelp.js"
+  },
+  "scripts": {
+    "start": "node bin/skelp.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "argparse": "^3.0.2"
+  }
+}
