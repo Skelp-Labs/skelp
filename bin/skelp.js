@@ -7,7 +7,7 @@ import fs from 'fs/promises'
 import readline from 'readline/promises'
 import { ArgumentParser } from 'argparse'
 import { createAgentLoop } from '../packages/agentloop/src/index.js'
-import { createOpenAIClient } from '../packages/llm/openai-client.js'
+import { createOllamaClient } from '../packages/llm/ollama-client.js'
 import { detectProvider } from '../packages/detect/detect-provider.js'
 import { createResponseRenderer, createToolRenderer } from '../packages/markdown/render-response.js'
 import { createChatLog } from '../packages/skelp/chat-log.js'
@@ -67,8 +67,11 @@ function parseArguments () {
   const rawArgs = process.argv.slice(2)
   if (rawArgs[0] !== 'config') {
     const cwdIndex = rawArgs.indexOf('--cwd')
-    const cwd = cwdIndex >= 0 ? rawArgs[cwdIndex + 1] : process.cwd()
-    const prompt = rawArgs.filter((arg, index) => index !== cwdIndex && index !== cwdIndex + 1)
+    const hasCwd = cwdIndex >= 0 && rawArgs[cwdIndex + 1]
+    const cwd = hasCwd ? rawArgs[cwdIndex + 1] : process.cwd()
+    const prompt = hasCwd
+      ? [...rawArgs.slice(0, cwdIndex), ...rawArgs.slice(cwdIndex + 2)]
+      : rawArgs
     return { command: null, prompt, cwd, executionMode: 'autopilot' }
   }
 
@@ -90,6 +93,36 @@ function createInterface () {
   return readline.createInterface({ input, output })
 }
 
+async function runCommand (command, commandCwd, onStream, background = false) {
+  const { exec } = await import('child_process')
+  if (background) {
+    const child = exec(command, { cwd: commandCwd, detached: true, windowsHide: true })
+    child.unref()
+    return `Started in background (pid ${child.pid}).`
+  }
+
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd: commandCwd }, (error, stdout, stderr) => {
+      onStream?.(stdout)
+      onStream?.(stderr)
+      if (error) reject(error)
+      else resolve(stdout || stderr || 'Command completed.')
+    })
+  })
+}
+
+function createConfirmationHandler (rl, state) {
+  return async (command) => {
+    if (state.allowAll) return true
+    const answer = (await rl.question(`Allow '${command}'? [Y/n/a] `)).trim().toLowerCase()
+    if (answer === 'a') {
+      state.allowAll = true
+      return true
+    }
+    return answer === '' || answer === 'y' || answer === 'yes'
+  }
+}
+
 async function run (prompt, options = {}) {
   const config = await readConfig()
   if (config.server === 'auto') {
@@ -102,26 +135,20 @@ async function run (prompt, options = {}) {
       config.primaryModel = provider.model
     }
   }
-  const client = createOpenAIClient(config)
+  const client = createOllamaClient(config)
   const rl = createInterface()
   const cwd = path.resolve(options.cwd || process.cwd())
   const executionMode = options.executionMode || 'interactive'
+  const confirmationState = { allowAll: false }
   const tools = [
     ...registerFsTools({ cwd, readlineInterface: rl }),
     ...registerTerminalTools({
       cwd,
       workspaceRoot: cwd,
       readlineInterface: rl,
-      autoApprove: config.autoApprove,
-      askForConfirmation: async (command) => (await rl.question(`Allow '${command}'? [y/N] `)).toLowerCase() === 'y',
-      runCommand: async (command, commandCwd, onStream) => new Promise((resolve, reject) => {
-        import('child_process').then(({ exec }) => exec(command, { cwd: commandCwd }, (error, stdout, stderr) => {
-          onStream?.(stdout)
-          onStream?.(stderr)
-          if (error) reject(error)
-          else resolve(stdout || stderr || 'Command completed.')
-        }))
-      })
+      autoApprove: executionMode === 'autopilot' || config.autoApprove,
+      askForConfirmation: createConfirmationHandler(rl, confirmationState),
+      runCommand
     })
   ]
   const agent = createAgentLoop({
@@ -139,7 +166,10 @@ async function run (prompt, options = {}) {
     const tools = createToolRenderer()
     try {
       const result = await agent.executeGoal(prompt, (delta) => renderer.writeDelta(delta), {
-        onToolCall: tools.onToolCall,
+        onToolCall: (toolCall) => {
+          tools.onToolCall(toolCall)
+          return chatLog.writeToolCall({ ...toolCall, messages: agent.messages })
+        },
         onToolResult: tools.onToolResult,
         onStatus: tools.onStatus,
         onStep: (step) => chatLog.writeStep(step)

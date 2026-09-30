@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Minimal LLM client for Skelp",
   "main": "openai-client.js",
+  "exports": {
+    "./openai-client": "./openai-client.js",
+    "./ollama-client": "./ollama-client.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

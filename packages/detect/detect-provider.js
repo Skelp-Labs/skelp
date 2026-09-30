@@ -8,19 +8,18 @@ const CANDIDATES = [
 const TIMEOUT_MS = 1000
 
 /**
- * Fetches available models from a given server URL.
+ * Fetches available models from a given provider.
  * Returns an array of model ID strings, or an empty array on failure.
  */
-export async function fetchModels (serverUrl) {
+export async function fetchModels (serverUrl, endpoint = '/v1/models', mapModels = (data) => data?.data?.map((model) => model.id)) {
   try {
-    const res = await fetch(`${serverUrl.replace(/\/+$/, '')}/v1/models`, {
+    const res = await fetch(`${serverUrl.replace(/\/+$/, '')}${endpoint}`, {
       signal: AbortSignal.timeout(TIMEOUT_MS)
     })
     if (!res.ok) return []
     const data = await res.json()
-    if (data && Array.isArray(data.data)) {
-      return data.data.map((m) => m.id)
-    }
+    const models = mapModels(data)
+    if (Array.isArray(models)) return models
   } catch {
     // Not reachable
   }
@@ -34,7 +33,14 @@ export async function fetchModels (serverUrl) {
  */
 export async function detectProvider () {
   for (const candidate of CANDIDATES) {
-    const models = await fetchModels(candidate.url)
+    const isOllama = candidate.name.startsWith('Ollama')
+    const models = await fetchModels(
+      candidate.url,
+      isOllama ? '/api/tags' : '/v1/models',
+      isOllama
+        ? (data) => data?.models?.map((model) => model.name)
+        : (data) => data?.data?.map((model) => model.id)
+    )
     if (models.length > 0) {
       return {
         name: candidate.name,
