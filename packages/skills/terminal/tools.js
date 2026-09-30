@@ -1,4 +1,4 @@
-export default function registerTerminalTools({ onStream, readlineInterface, autoApprove, askForConfirmation, runCommand, cwd, workspaceRoot }) {
+export default function registerTerminalTools ({ onStream, readlineInterface, autoApprove, askForConfirmation, runCommand, cwd, workspaceRoot }) {
   return [{
     type: 'function',
     function: {
@@ -15,36 +15,36 @@ export default function registerTerminalTools({ onStream, readlineInterface, aut
       }
     },
     onChunk: ({ accumulatedArgs }) => {
-      let commandPreview = '';
-      const match = (accumulatedArgs || '').match(/"command"\s*:\s*"([^"]*)/);
+      let commandPreview = ''
+      const match = (accumulatedArgs || '').match(/"command"\s*:\s*"([^"]*)/)
       if (match) {
-        commandPreview = match[1];
+        commandPreview = match[1]
       }
       if (readlineInterface && typeof readlineInterface.updateStatus === 'function') {
-        readlineInterface.updateStatus(commandPreview ? `Command: ${commandPreview.slice(0, 40)}...` : 'Preparing command...');
+        readlineInterface.updateStatus(commandPreview ? `Command: ${commandPreview.slice(0, 40)}...` : 'Preparing command...')
       }
     },
     handler: async (args) => {
-      let shouldExecute = true;
+      let shouldExecute = true
       if (!autoApprove) {
         if (readlineInterface && typeof readlineInterface.updateStatus === 'function') {
-          readlineInterface.updateStatus('Awaiting confirmation...');
+          readlineInterface.updateStatus('Awaiting confirmation...')
         }
-        shouldExecute = await askForConfirmation(args.command, readlineInterface);
+        shouldExecute = await askForConfirmation(args.command, readlineInterface)
       }
       if (shouldExecute) {
         if (readlineInterface && typeof readlineInterface.updateStatus === 'function') {
-          readlineInterface.updateStatus(`Executing: ${args.command}...`);
+          readlineInterface.updateStatus(`Executing: ${args.command}...`)
         }
         if (onStream) {
-          onStream(`\n\x1b[33m⚡ Executing command: ${args.command}...\x1b[0m\n`);
+          onStream(`\n\x1b[33m⚡ Executing command: ${args.command}...\x1b[0m\n`)
         }
-        return await runCommand(args.command, args.cwd || cwd, onStream, Boolean(args.background));
+        return await runCommand(args.command, args.cwd || cwd, onStream, Boolean(args.background))
       }
       if (onStream) {
-        onStream(`\n\x1b[31mx Execution skipped.\x1b[0m\n`);
+        onStream('\n\x1b[31mx Execution skipped.\x1b[0m\n')
       }
-      return 'Action execution was denied/cancelled by the user.';
+      return 'Action execution was denied/cancelled by the user.'
     }
-  }];
+  }]
 }

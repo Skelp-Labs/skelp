@@ -42,10 +42,12 @@ skelp "Change the server to http://localhost:5678"
 skelp "Which models are available?"
 skelp "Create a simple electron app and start it"
 skelp "Download https://samplelib.com/csv/sample-10mb.csv"
+skelp "Download https://samplelib.com/csv/sample-10mb.csv use wget"
+skelp "Test a sleep command"
 skelp "Stop process at port 3000"
 
 # From file
-skelp $(cat specs/snake.md) --cwd ~/.skelp/workspace/snake
+skelp $(cat examples/specs/snake.md) --cwd ~/.skelp/workspace/snake
 
 skelp stack "Task 1" "Task 2" "Task 3"
 

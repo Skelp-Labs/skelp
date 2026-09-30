@@ -8,7 +8,9 @@
   },
   "scripts": {
     "start": "node bin/skelp.js",
-    "test": "node --test"
+    "test": "node --test",
+    "lint": "npx standard",
+    "lint:fix": "npx standard --fix"
   },
   "engines": {
     "node": ">=18"

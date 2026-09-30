@@ -17,4 +17,4 @@ export const colorScheme = {
     warning: 'yellow',
     error: 'red'
   }
-};
+}
