@@ -59,6 +59,8 @@ skelp config list
 skelp config get tone
 skelp config set server http://localhost:5678
 skelp config set tone "formal and professional"
+skelp config set soul thorough
+skelp config set soul /absolute/path/to/my-soul.md
 skelp config set userSystem "Always explain risky changes before applying them."
 skelp config set autoApprove true
 skelp config reset
@@ -72,6 +74,7 @@ Settings are preserved globally in `~/.skelprc`:
   "server": "auto",
   "primaryModel": "local-ai-model",
   "tone": "concise, friendly and helpful",
+  "soul": "standard",
   "userSystem": "",
   "autoApprove": false
 }

@@ -1,4 +1,5 @@
 import path from 'path'
+import fs from 'fs/promises'
 import readline from 'readline/promises'
 import { createAgentLoop } from '../agentloop/src/index.js'
 import { createOllamaClient } from '../llm/ollama-client.js'
@@ -26,11 +27,27 @@ function createConfirmationHandler (rl, state) {
 
 export const SEPARATOR = '----------------------------------------'
 
-function printConfigVar({key, value, label}) {
+const soulDirectory = path.resolve(new URL('../souls/', import.meta.url).pathname)
+
+async function readSoul (soul = 'standard') {
+  const soulPath = path.isAbsolute(soul)
+    ? soul
+    : path.join(soulDirectory, `${soul}.md`)
+  try {
+    return await fs.readFile(soulPath, 'utf8')
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      throw new Error(`Soul not found: ${soul}. Use a built-in soul name or an absolute Markdown path.`)
+    }
+    throw error
+  }
+}
+
+function printConfigVar ({ key, value, label }) {
   console.log(`\x1b[36m${label ?? key}:\x1b[0m ${value}`)
 }
 
-function printConfig(config = {}) {
+function printConfig (config = {}) {
   console.log(SEPARATOR)
   printConfigVar({ label: 'Current working directory', value: config.cwd ?? process.cwd() })
   // Max steps
@@ -52,6 +69,7 @@ export async function runChat (options = {}) {
     output = process.stdout,
     runCommand
   } = options
+  const soul = await readSoul(config.soul)
   const client = createOllamaClient(config)
   const rl = createInterface(input, output)
   const confirmationState = { allowAll: false }
@@ -81,6 +99,7 @@ export async function runChat (options = {}) {
     maxSteps: config.maxSteps,
     systemPrompt: [
       config.tone,
+      soul,
       config.userSystem,
       executionMode === 'autopilot'
         ? 'Execution mode: autopilot. Execute the requested plan without asking for confirmation.'

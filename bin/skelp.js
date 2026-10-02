@@ -15,6 +15,7 @@ const defaults = {
   server: 'auto',
   primaryModel: 'local-ai-model',
   tone: 'concise, friendly and helpful',
+  soul: 'standard',
   userSystem: '',
   autoApprove: false
 }
