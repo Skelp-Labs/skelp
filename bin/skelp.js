@@ -106,7 +106,8 @@ async function run (prompt, options = {}) {
   if (config.server === 'auto') {
     const provider = await detectProvider()
     if (!provider) {
-      throw new Error('No local OpenAI-compatible provider was detected.')
+      console.log('Current configuration:', config.server)
+      throw new Error('No local OpenAI-compatible provider was detected. Please run `skelp config set server <url>` to set the server.')
     }
     config.server = provider.url
     if (!config.primaryModel || config.primaryModel === defaults.primaryModel || config.primaryModel === 'skelp:latest') {
