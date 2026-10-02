@@ -7,6 +7,7 @@ import fs from 'fs/promises'
 import { ArgumentParser } from 'argparse'
 import { runChat } from '../packages/chat/index.js'
 import { detectProvider } from '../packages/detect/detect-provider.js'
+import { setupConfig } from '../packages/setup/index.js'
 
 const configDirectory = path.join(os.homedir(), '.skelp')
 const configPath = path.join(configDirectory, 'config.json')
@@ -17,7 +18,8 @@ const defaults = {
   tone: 'concise, friendly and helpful',
   soul: 'standard',
   userSystem: '',
-  autoApprove: false
+  autoApprove: false,
+  maxSteps: 8
 }
 
 async function readConfig () {
@@ -58,6 +60,12 @@ async function runConfigCommand (args) {
   }
 }
 
+async function runSetupCommand () {
+  const config = await setupConfig(await readConfig(), { input, output })
+  await writeConfig(config)
+  console.log(`Configuration saved to ${configPath}`)
+}
+
 function parseArguments () {
   const rawArgs = process.argv.slice(2)
   const parser = new ArgumentParser({ description: 'A minimal developer shell powered by an OpenAI-compatible model.' })
@@ -75,7 +83,9 @@ function parseArguments () {
   set.add_argument('key')
   set.add_argument('value')
   action.add_parser('reset', { help: 'Reset configuration to defaults.' })
-  if (rawArgs[0] !== 'config') rawArgs.unshift('run')
+  action.add_parser('setup', { help: 'Interactively configure Skelp.' })
+  config.add_parser('setup', { help: 'Interactively configure Skelp.' })
+  if (rawArgs[0] !== 'config' && rawArgs[0] !== 'setup') rawArgs.unshift('run')
   return parser.parse_args(rawArgs)
 }
 
@@ -123,8 +133,9 @@ async function run (prompt, options = {}) {
 }
 
 const args = parseArguments()
-if (args.command === 'config') {
-  runConfigCommand(args).catch((error) => {
+if (args.command === 'config' || args.command === 'setup') {
+  const command = args.command === 'setup' || args.action === 'setup' ? runSetupCommand() : runConfigCommand(args)
+  command.catch((error) => {
     console.error(`skelp: ${error.message}`)
     process.exitCode = 1
   })

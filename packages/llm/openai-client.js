@@ -56,6 +56,7 @@ export async function readStreamingResponse (response, onChunk) {
 export function createOpenAIClient (config = {}) {
   const client = {
     server: config.server || 'http://localhost:1234',
+    apiKey: config.apiKey,
     primaryModel: config.primaryModel || 'local-ai-model',
     reasoningEffort: config.reasoningEffort || 'none',
     maxTokens: Number.isInteger(config.maxTokens) ? config.maxTokens : 8192
@@ -110,7 +111,7 @@ export function createOpenAIClient (config = {}) {
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(client.apiKey ? { Authorization: `Bearer ${client.apiKey}` } : {}) },
       body: JSON.stringify(payload),
       signal
     })

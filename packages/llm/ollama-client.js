@@ -98,6 +98,7 @@ export async function readOllamaStreamingResponse (response, onChunk) {
 export function createOllamaClient (config = {}) {
   const client = {
     server: config.server || 'http://localhost:11434',
+    apiKey: config.apiKey,
     primaryModel: config.primaryModel || 'llama3.2',
     maxTokens: Number.isInteger(config.maxTokens) ? config.maxTokens : 8192,
     think: config.think ?? false
@@ -110,7 +111,10 @@ export function createOllamaClient (config = {}) {
   client.getModels = async () => {
     try {
       const url = getServerUrl(client.server, '/api/tags')
-      const response = await fetch(url, { signal: AbortSignal.timeout(5000) })
+      const response = await fetch(url, {
+        headers: client.apiKey ? { Authorization: `Bearer ${client.apiKey}` } : {},
+        signal: AbortSignal.timeout(5000)
+      })
       if (!response.ok) throw new Error(`Server returned status ${response.status}`)
 
       const data = await response.json()
@@ -138,7 +142,10 @@ export function createOllamaClient (config = {}) {
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(client.apiKey ? { Authorization: `Bearer ${client.apiKey}` } : {})
+      },
       body: JSON.stringify(payload),
       signal
     })
