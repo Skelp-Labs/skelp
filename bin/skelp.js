@@ -59,18 +59,12 @@ async function runConfigCommand (args) {
 
 function parseArguments () {
   const rawArgs = process.argv.slice(2)
-  if (rawArgs[0] !== 'config') {
-    const cwdIndex = rawArgs.indexOf('--cwd')
-    const hasCwd = cwdIndex >= 0 && rawArgs[cwdIndex + 1]
-    const cwd = hasCwd ? rawArgs[cwdIndex + 1] : process.cwd()
-    const prompt = hasCwd
-      ? [...rawArgs.slice(0, cwdIndex), ...rawArgs.slice(cwdIndex + 2)]
-      : rawArgs
-    return { command: null, prompt, cwd, executionMode: 'autopilot' }
-  }
-
   const parser = new ArgumentParser({ description: 'A minimal developer shell powered by an OpenAI-compatible model.' })
   const config = parser.add_subparsers({ dest: 'command' })
+  const promptParser = config.add_parser('run', { help: 'Run a task.' })
+  promptParser.add_argument('prompt', { nargs: '*' })
+  promptParser.add_argument('-f', '--file', { dest: 'promptFile' })
+  promptParser.add_argument('--cwd', { default: process.cwd() })
   const configParser = config.add_parser('config', { help: 'Manage Skelp configuration.' })
   const action = configParser.add_subparsers({ dest: 'action', required: true })
   action.add_parser('list', { help: 'List configuration.' })
@@ -80,6 +74,7 @@ function parseArguments () {
   set.add_argument('key')
   set.add_argument('value')
   action.add_parser('reset', { help: 'Reset configuration to defaults.' })
+  if (rawArgs[0] !== 'config') rawArgs.unshift('run')
   return parser.parse_args(rawArgs)
 }
 
@@ -133,8 +128,13 @@ if (args.command === 'config') {
     process.exitCode = 1
   })
 } else {
-  const prompt = args.prompt.join(' ')
-  run(prompt, { ...args, executionMode: prompt ? 'autopilot' : 'interactive' }).catch((error) => {
+  const prompt = args.promptFile
+    ? fs.readFile(path.resolve(process.cwd(), args.promptFile), 'utf8')
+    : Promise.resolve(args.prompt.join(' '))
+  prompt.then((instruction) => run(instruction, {
+    ...args,
+    executionMode: instruction ? 'autopilot' : 'interactive'
+  })).catch((error) => {
     console.error(`skelp: ${error.message}`)
     process.exitCode = 1
   })

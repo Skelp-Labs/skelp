@@ -48,6 +48,7 @@ skelp "Stop process at port 3000"
 
 # From file
 skelp $(cat examples/specs/snake.md) --cwd ~/.skelp/workspace/snake
+skelp --file examples/specs/snake.md --cwd ~/.skelp/workspace/snake
 
 skelp stack "Task 1" "Task 2" "Task 3"
 
