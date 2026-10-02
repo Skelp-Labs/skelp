@@ -1,3 +1,5 @@
+export const DEFAULT_MAX_STEPS = 8
+
 export function createAgentLoop (options = {}) {
   const client = options.client
   if (!client?.chatCompletionStream) throw new Error('A completion client is required')
@@ -5,7 +7,7 @@ export function createAgentLoop (options = {}) {
   let systemPrompt = options.systemPrompt || ''
   let tools = options.tools || []
   const messages = options.messages || options.history || []
-  const maxSteps = options.maxSteps ?? 8
+  const maxSteps = options.maxSteps ?? DEFAULT_MAX_STEPS
   const clearHistory = () => {
     messages.length = 0
   }

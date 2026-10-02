@@ -6,6 +6,7 @@ import { createResponseRenderer, createToolRenderer } from '../markdown/render-r
 import { createChatLog } from '../skelp/chat-log.js'
 import registerFsTools from '../skills/filesystem/tools.js'
 import registerTerminalTools from '../skills/terminal/tools.js'
+import { DEFAULT_MAX_STEPS } from '../agentloop/src/loop.js'
 
 function createInterface (input, output) {
   return readline.createInterface({ input, output })
@@ -23,7 +24,34 @@ function createConfirmationHandler (rl, state) {
   }
 }
 
-export async function runChat ({ prompt = '', config, cwd, executionMode = 'interactive', input = process.stdin, output = process.stdout, runCommand }) {
+export const SEPARATOR = '----------------------------------------'
+
+function printConfigVar({key, value, label}) {
+  console.log(`\x1b[36m${label ?? key}:\x1b[0m ${value}`)
+}
+
+function printConfig(config = {}) {
+  console.log(SEPARATOR)
+  printConfigVar({ label: 'Current working directory', value: config.cwd ?? process.cwd() })
+  // Max steps
+  printConfigVar({ label: 'Max steps', value: config.maxSteps ?? DEFAULT_MAX_STEPS })
+  printConfigVar({ label: 'Server', value: config.server })
+  printConfigVar({ label: 'Primary model', value: config.primaryModel })
+  printConfigVar({ label: 'Execution mode', value: config.executionMode ?? 'interactive' })
+  printConfigVar({ label: 'Auto approve', value: config.autoApprove })
+  console.log(SEPARATOR)
+}
+
+export async function runChat (options = {}) {
+  const {
+    prompt = '',
+    config,
+    cwd = process.cwd(),
+    executionMode = 'interactive',
+    input = process.stdin,
+    output = process.stdout,
+    runCommand
+  } = options
   const client = createOllamaClient(config)
   const rl = createInterface(input, output)
   const confirmationState = { allowAll: false }
@@ -40,16 +68,17 @@ export async function runChat ({ prompt = '', config, cwd, executionMode = 'inte
   ]
 
   const autoApprove = executionMode === 'autopilot' || config.autoApprove
-  console.log('----------------------------------------')
-  console.log(`\x1b[36mExecution mode:\x1b[0m ${executionMode}`)
-  console.log(`\x1b[36mServer:\x1b[0m ${config.server}`)
-  console.log(`\x1b[36mPrimary model:\x1b[0m ${config.primaryModel}`)
-  console.log(`\x1b[36mAuto approve:\x1b[0m ${autoApprove}`)
-  console.log('----------------------------------------')
+
+  printConfig({
+    ...config,
+    executionMode,
+    autoApprove
+  })
 
   const agent = createAgentLoop({
     client,
     tools,
+    maxSteps: config.maxSteps,
     systemPrompt: [
       config.tone,
       config.userSystem,

@@ -114,9 +114,16 @@ async function run (prompt, options = {}) {
       config.primaryModel = provider.model
     }
   }
-  const cwd = path.resolve(options.cwd || process.cwd())
-  const executionMode = options.executionMode || 'interactive'
-  return runChat({ prompt, config, cwd, executionMode, input, output, runCommand })
+  return runChat({
+    ...options,
+    prompt,
+    config,
+    cwd: path.resolve(options.cwd || process.cwd()),
+    executionMode: options.executionMode || 'interactive',
+    input,
+    output,
+    runCommand
+  })
 }
 
 const args = parseArguments()
