@@ -4,3 +4,5 @@ export const DEFAULT_LLM_REQUEST_OPTIONS = {
     temperature: 0,
     stream: true
 }
+
+export const RELEASE_TAG = 'edge'

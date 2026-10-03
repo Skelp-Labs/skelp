@@ -8,28 +8,20 @@ import { ArgumentParser } from 'argparse'
 import { runChat } from '../packages/chat/index.js'
 import { detectProvider } from '../packages/detect/detect-provider.js'
 import { setupConfig } from '../packages/setup/index.js'
+import { DEFAULTS } from './constants.js'
 
 const configDirectory = path.join(os.homedir(), '.skelp')
 const configPath = path.join(configDirectory, 'config.json')
 const legacyConfigPath = path.join(os.homedir(), '.skelprc')
-const defaults = {
-  server: 'auto',
-  primaryModel: 'local-ai-model',
-  tone: 'concise, friendly and helpful',
-  soul: 'standard',
-  userSystem: '',
-  autoApprove: false,
-  maxSteps: 8
-}
 
 async function readConfig () {
   try {
-    return { ...defaults, ...JSON.parse(await fs.readFile(configPath, 'utf8')) }
+    return { ...DEFAULTS, ...JSON.parse(await fs.readFile(configPath, 'utf8')) }
   } catch {
     try {
-      return { ...defaults, ...JSON.parse(await fs.readFile(legacyConfigPath, 'utf8')) }
+      return { ...DEFAULTS, ...JSON.parse(await fs.readFile(legacyConfigPath, 'utf8')) }
     } catch {
-      return { ...defaults }
+      return { ...DEFAULTS }
     }
   }
 }
@@ -56,7 +48,7 @@ async function runConfigCommand (args) {
     return
   }
   if (args.action === 'reset') {
-    await writeConfig(defaults)
+    await writeConfig(DEFAULTS)
   }
 }
 
@@ -116,7 +108,7 @@ async function run (prompt, options = {}) {
       throw new Error('No local OpenAI-compatible provider was detected. Please run `skelp config set server <url>` to set the server.')
     }
     config.server = provider.url
-    if (!config.primaryModel || config.primaryModel === defaults.primaryModel || config.primaryModel === 'skelp:latest') {
+    if (!config.primaryModel || config.primaryModel === DEFAULTS.primaryModel || config.primaryModel === 'skelp:latest') {
       config.primaryModel = provider.model
     }
   }
