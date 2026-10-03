@@ -120,6 +120,7 @@ export function createAgentLoop (options = {}) {
           const name = toolCall.function.name
           let args
           let result
+          let failed = false
           try {
             args = JSON.parse(toolCall.function.arguments || '{}')
             events.onToolCall?.({ key, step, index, id: toolCall.id, name, args })
@@ -129,13 +130,28 @@ export function createAgentLoop (options = {}) {
               : await runOptions.onClientTool?.({ key, step, index, id: toolCall.id, name, args }) ?? `Unknown tool: ${name}`
           } catch (error) {
             result = `Tool execution error: ${error.message}`
+            failed = true
           }
-          const event = { key, step, index, id: toolCall.id, name, args, result }
+          const event = { key, step, index, id: toolCall.id, name, args, result, error: failed }
           events.onToolResult?.(event)
-          return { role: 'tool', tool_call_id: toolCall.id, content: String(result) }
+          const image = result && result.type === 'image' ? result : null
+          return {
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: image ? `Attached image: ${image.path}` : String(result),
+            image
+          }
         }))
         throwIfAborted(runOptions.signal)
         messages.push(...results)
+        const images = results.map((result) => result.image).filter(Boolean)
+        if (images.length) {
+          messages.push({
+            role: 'user',
+            content: 'Attached image(s) are available for visual analysis.',
+            images: images.map((image) => image.data)
+          })
+        }
       }
 
       throw new Error(`Agent stopped after ${runOptions.maxSteps ?? maxSteps} steps without a final response`)

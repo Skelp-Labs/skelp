@@ -8,6 +8,7 @@ import { createChatLog } from '../skelp/chat-log.js'
 import registerFsTools from '../skills/filesystem/tools.js'
 import registerTerminalTools from '../skills/terminal/tools.js'
 import { DEFAULT_MAX_STEPS } from '../agentloop/src/loop.js'
+import { printConfig, readOptionalFile } from './utils.js'
 
 function createInterface (input, output) {
   return readline.createInterface({ input, output })
@@ -43,23 +44,6 @@ async function readSoul (soul = 'standard') {
   }
 }
 
-function printConfigVar ({ key, value, label }) {
-  console.log(`\x1b[36m${label ?? key}:\x1b[0m ${value}`)
-}
-
-function printConfig (config = {}) {
-  console.log(SEPARATOR)
-  printConfigVar({ label: 'Current working directory', value: process.cwd() })
-  printConfigVar({ label: 'Agent working directory', value: config.cwd ?? process.cwd() })
-  // Max steps
-  printConfigVar({ label: 'Max steps', value: config.maxSteps ?? DEFAULT_MAX_STEPS })
-  printConfigVar({ label: 'Server', value: config.server })
-  printConfigVar({ label: 'Primary model', value: config.primaryModel })
-  printConfigVar({ label: 'Execution mode', value: config.executionMode ?? 'interactive' })
-  printConfigVar({ label: 'Auto approve', value: config.autoApprove })
-  console.log(SEPARATOR)
-}
-
 export async function runChat (options = {}) {
   const {
     prompt = '',
@@ -88,11 +72,13 @@ export async function runChat (options = {}) {
 
   const autoApprove = executionMode === 'autopilot' || config.autoApprove
 
-  printConfig({
-    ...config,
-    executionMode,
-    autoApprove
-  })
+  if (config.verbose) {
+    printConfig({
+      ...config,
+      executionMode,
+      autoApprove
+    })
+  }
 
   const agent = createAgentLoop({
     client,
@@ -132,7 +118,10 @@ export async function runChat (options = {}) {
       }
     }
 
+    const wakeup = await readOptionalFile(config.wakeup, 'Wakeup file')
+    if (wakeup) await execute(wakeup)
     if (executionMode === 'autopilot') return execute(prompt)
+    if (prompt.trim()) await execute(prompt)
 
     console.log('Please provide your instructions or the task you wish me to perform.')
     while (true) {
