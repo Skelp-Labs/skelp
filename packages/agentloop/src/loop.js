@@ -120,6 +120,7 @@ export function createAgentLoop (options = {}) {
           const name = toolCall.function.name
           let args
           let result
+          let failed = false
           try {
             args = JSON.parse(toolCall.function.arguments || '{}')
             events.onToolCall?.({ key, step, index, id: toolCall.id, name, args })
@@ -129,8 +130,9 @@ export function createAgentLoop (options = {}) {
               : await runOptions.onClientTool?.({ key, step, index, id: toolCall.id, name, args }) ?? `Unknown tool: ${name}`
           } catch (error) {
             result = `Tool execution error: ${error.message}`
+            failed = true
           }
-          const event = { key, step, index, id: toolCall.id, name, args, result }
+          const event = { key, step, index, id: toolCall.id, name, args, result, error: failed }
           events.onToolResult?.(event)
           return { role: 'tool', tool_call_id: toolCall.id, content: String(result) }
         }))

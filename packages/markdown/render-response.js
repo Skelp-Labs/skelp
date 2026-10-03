@@ -21,9 +21,9 @@ export function createToolRenderer (output = process.stdout) {
       const detail = args.command || args.path || ''
       output.write(`\n🛠️  ${name}${detail ? `: ${detail}` : ''}\n`)
     },
-    onToolResult ({ result }) {
+    onToolResult ({ result, error }) {
       const summary = String(result || '').replace(/\s+/g, ' ').trim()
-      output.write(`✅ ${summary.slice(0, 160)}${summary.length > 160 ? '...' : ''}\n`)
+      output.write(`${error ? '❌' : '✅'} ${summary.slice(0, 160)}${summary.length > 160 ? '...' : ''}\n`)
     },
     onStatus (status) {
       output.write(`⏳ ${status}\n`)
