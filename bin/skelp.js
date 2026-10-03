@@ -9,10 +9,7 @@ import { runChat } from '../packages/chat/index.js'
 import { detectProvider } from '../packages/detect/detect-provider.js'
 import { setupConfig } from '../packages/setup/index.js'
 import { DEFAULTS } from './constants.js'
-
-const configDirectory = path.join(os.homedir(), '.skelp')
-const configPath = path.join(configDirectory, 'config.json')
-const legacyConfigPath = path.join(os.homedir(), '.skelprc')
+import { homeDirectory, configPath, legacyConfigPath } from './constants.js'
 
 async function readConfig () {
   try {
@@ -27,7 +24,7 @@ async function readConfig () {
 }
 
 async function writeConfig (config) {
-  await fs.mkdir(configDirectory, { recursive: true })
+  await fs.mkdir(homeDirectory, { recursive: true })
   await fs.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
 }
 
@@ -66,6 +63,9 @@ function parseArguments () {
   promptParser.add_argument('prompt', { nargs: '*' })
   promptParser.add_argument('-f', '--file', { dest: 'promptFile' })
   promptParser.add_argument('--cwd', { default: process.cwd() })
+  const chatParser = config.add_parser('chat', { help: 'Start an interactive chat.' })
+  chatParser.add_argument('-f', '--file', { dest: 'promptFile' })
+  chatParser.add_argument('--cwd', { default: process.cwd() })
   const configParser = config.add_parser('config', { help: 'Manage Skelp configuration.' })
   const action = configParser.add_subparsers({ dest: 'action', required: true })
   action.add_parser('list', { help: 'List configuration.' })
@@ -77,7 +77,7 @@ function parseArguments () {
   action.add_parser('reset', { help: 'Reset configuration to defaults.' })
   action.add_parser('setup', { help: 'Interactively configure Skelp.' })
   config.add_parser('setup', { help: 'Interactively configure Skelp.' })
-  if (rawArgs[0] !== 'config' && rawArgs[0] !== 'setup') rawArgs.unshift('run')
+  if (rawArgs[0] !== 'config' && rawArgs[0] !== 'setup' && rawArgs[0] !== 'run' && rawArgs[0] !== 'chat') rawArgs.unshift('run')
   return parser.parse_args(rawArgs)
 }
 
@@ -133,11 +133,15 @@ if (args.command === 'config' || args.command === 'setup') {
   })
 } else {
   const prompt = args.promptFile
-    ? fs.readFile(path.resolve(process.cwd(), args.promptFile), 'utf8')
+    ? fs.access(path.resolve(process.cwd(), args.promptFile))
+      .then(() => fs.readFile(path.resolve(process.cwd(), args.promptFile), 'utf8'))
+      .catch(() => {
+        throw new Error(`Prompt file not found: ${args.promptFile}`)
+      })
     : Promise.resolve(args.prompt.join(' '))
   prompt.then((instruction) => run(instruction, {
     ...args,
-    executionMode: instruction ? 'autopilot' : 'interactive'
+    executionMode: args.command === 'chat' ? 'interactive' : instruction ? 'autopilot' : 'interactive'
   })).catch((error) => {
     console.error(`skelp: ${error.message}`)
     process.exitCode = 1
