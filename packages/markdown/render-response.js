@@ -22,7 +22,9 @@ export function createToolRenderer (output = process.stdout) {
       output.write(`\n🛠️  ${name}${detail ? `: ${detail}` : ''}\n`)
     },
     onToolResult ({ result, error }) {
-      const summary = String(result || '').replace(/\s+/g, ' ').trim()
+      const summary = result?.type === 'image'
+        ? `Attached image: ${result.path || 'image'}`
+        : String(result || '').replace(/\s+/g, ' ').trim()
       output.write(`${error ? '❌' : '✅'} ${summary.slice(0, 160)}${summary.length > 160 ? '...' : ''}\n`)
     },
     onStatus (status) {
