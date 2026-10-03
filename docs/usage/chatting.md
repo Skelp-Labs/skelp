@@ -6,7 +6,7 @@ For example:
 ```sh
 # List
 skelp "Hi"
-skelp "List the latest 5 images from ~/Pictures"
+skelp "List the latest 5 images from ~/Pictures" -i
 skelp "Add ~/Pictures to my knowledge/favorites.md"
 
 skelp "Show me the latest image from the media library"

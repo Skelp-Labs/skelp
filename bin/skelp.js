@@ -57,6 +57,11 @@ async function runSetupCommand () {
 
 function parseArguments () {
   const rawArgs = process.argv.slice(2)
+  const interactiveIndex = rawArgs.indexOf('-i')
+  if (interactiveIndex !== -1 && rawArgs[0] !== 'chat') {
+    rawArgs.splice(interactiveIndex, 1)
+    rawArgs.unshift('chat')
+  }
   const parser = new ArgumentParser({ description: 'A minimal developer shell powered by an OpenAI-compatible model.' })
   const config = parser.add_subparsers({ dest: 'command' })
   const promptParser = config.add_parser('run', { help: 'Run a task.' })
@@ -64,6 +69,7 @@ function parseArguments () {
   promptParser.add_argument('-f', '--file', { dest: 'promptFile' })
   promptParser.add_argument('--cwd', { default: process.cwd() })
   const chatParser = config.add_parser('chat', { help: 'Start an interactive chat.' })
+  chatParser.add_argument('prompt', { nargs: '*' })
   chatParser.add_argument('-f', '--file', { dest: 'promptFile' })
   chatParser.add_argument('--cwd', { default: process.cwd() })
   const configParser = config.add_parser('config', { help: 'Manage Skelp configuration.' })

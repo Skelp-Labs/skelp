@@ -119,6 +119,7 @@ export async function runChat (options = {}) {
     const wakeup = await readOptionalFile(config.wakeup, 'Wakeup file')
     if (wakeup) await execute(wakeup)
     if (executionMode === 'autopilot') return execute(prompt)
+    if (prompt.trim()) await execute(prompt)
 
     console.log('Please provide your instructions or the task you wish me to perform.')
     while (true) {

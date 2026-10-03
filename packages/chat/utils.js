@@ -23,7 +23,7 @@ export function printConfigVar ({ key, value, label }) {
 export function printConfig (config = {}) {
   console.log(SEPARATOR)
   printConfigVar({ label: 'Current working directory', value: process.cwd() })
-  printConfigVar({ label: 'Agent working directory', value: config.cwd ?? process.cwd() })
+  printConfigVar({ label: 'Agent working directory', value: config.cwd || '(not specified)' })
   printConfigVar({ label: 'Wakeup file', value: config.wakeup || '(not used)' })
   printConfigVar({ label: 'Max steps', value: config.maxSteps ?? DEFAULT_MAX_STEPS })
   printConfigVar({ label: 'Server', value: config.server })
