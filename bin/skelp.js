@@ -68,10 +68,12 @@ function parseArguments () {
   promptParser.add_argument('prompt', { nargs: '*' })
   promptParser.add_argument('-f', '--file', { dest: 'promptFile' })
   promptParser.add_argument('--cwd', { default: process.cwd() })
+  promptParser.add_argument('--verbose', { action: 'store_true' })
   const chatParser = config.add_parser('chat', { help: 'Start an interactive chat.' })
   chatParser.add_argument('prompt', { nargs: '*' })
   chatParser.add_argument('-f', '--file', { dest: 'promptFile' })
   chatParser.add_argument('--cwd', { default: process.cwd() })
+  chatParser.add_argument('--verbose', { action: 'store_true' })
   const configParser = config.add_parser('config', { help: 'Manage Skelp configuration.' })
   const action = configParser.add_subparsers({ dest: 'action', required: true })
   action.add_parser('list', { help: 'List configuration.' })
@@ -121,7 +123,7 @@ async function run (prompt, options = {}) {
   return runChat({
     ...options,
     prompt,
-    config,
+    config: { ...config, ...(options.verbose ? { verbose: true } : {}) },
     cwd: path.resolve(options.cwd || process.cwd()),
     executionMode: options.executionMode || 'interactive',
     input,

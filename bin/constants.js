@@ -9,6 +9,7 @@ export const DEFAULTS = {
   wakeup: '',
   userSystem: '',
   autoApprove: false,
+  verbose: false,
   maxSteps: 8
 }
 
