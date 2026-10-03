@@ -72,11 +72,13 @@ export async function runChat (options = {}) {
 
   const autoApprove = executionMode === 'autopilot' || config.autoApprove
 
-  printConfig({
-    ...config,
-    executionMode,
-    autoApprove
-  })
+  if (config.verbose) {
+    printConfig({
+      ...config,
+      executionMode,
+      autoApprove
+    })
+  }
 
   const agent = createAgentLoop({
     client,
