@@ -6,6 +6,7 @@ import process, { stdin as input, stdout as output } from 'process'
 import fs from 'fs/promises'
 import { ArgumentParser } from 'argparse'
 import { runChat } from '../packages/chat/index.js'
+import { mergeConfig, readPath, writePath, parseConfigValue } from '../packages/config/index.js'
 import { detectProvider } from '../packages/detect/detect-provider.js'
 import { setupConfig } from '../packages/setup/index.js'
 import { DEFAULTS } from './constants.js'
@@ -13,12 +14,12 @@ import { homeDirectory, configPath, legacyConfigPath } from './constants.js'
 
 async function readConfig () {
   try {
-    return { ...DEFAULTS, ...JSON.parse(await fs.readFile(configPath, 'utf8')) }
+    return mergeConfig(DEFAULTS, JSON.parse(await fs.readFile(configPath, 'utf8')))
   } catch {
     try {
-      return { ...DEFAULTS, ...JSON.parse(await fs.readFile(legacyConfigPath, 'utf8')) }
+      return mergeConfig(DEFAULTS, JSON.parse(await fs.readFile(legacyConfigPath, 'utf8')))
     } catch {
-      return { ...DEFAULTS }
+      return mergeConfig(DEFAULTS, {})
     }
   }
 }
@@ -35,12 +36,11 @@ async function runConfigCommand (args) {
     return
   }
   if (args.action === 'get') {
-    console.log(config[args.key] ?? '')
+    console.log(readPath(config, args.key) ?? '')
     return
   }
   if (args.action === 'set') {
-    const value = args.value
-    config[args.key] = value === 'true' ? true : value === 'false' ? false : value
+    writePath(config, args.key, parseConfigValue(args.value))
     await writeConfig(config)
     return
   }
