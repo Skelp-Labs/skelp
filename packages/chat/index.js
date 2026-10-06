@@ -7,12 +7,9 @@ import { createResponseRenderer, createToolRenderer } from '../markdown/render-r
 import { createChatLog } from '../skelp/chat-log.js'
 import registerFsTools from '../skills/filesystem/tools.js'
 import registerTerminalTools from '../skills/terminal/tools.js'
-import { DEFAULT_MAX_STEPS } from '../agentloop/src/loop.js'
 import { printConfig, readOptionalFile } from './utils.js'
-
-function createInterface (input, output) {
-  return readline.createInterface({ input, output })
-}
+import { createCommandRegistry, createCompleter, runCommand as executeSlashCommand } from '../commands/index.js'
+import { createConfigCommands } from '../config/commands.js'
 
 function createConfirmationHandler (rl, state) {
   return async (command) => {
@@ -52,11 +49,65 @@ export async function runChat (options = {}) {
     executionMode = 'interactive',
     input = process.stdin,
     output = process.stdout,
-    runCommand
+    runCommand,
+    saveConfig = async () => {},
+    resetConfig = async () => {},
+    setupConfig = async () => {}
   } = options
   const soul = await readSoul(config.soul)
   const client = createOllamaClient(config)
-  const rl = createInterface(input, output)
+  const commands = createCommandRegistry([
+    {
+      name: 'help',
+      description: 'Display available slash commands.',
+      run: ({ output }) => {
+        output.write(`${commands.list().map(command => `/${command.name} - ${command.description}`).join('\n')}\n`)
+      }
+    },
+    {
+      name: 'exit',
+      description: 'Exit the chat.',
+      run: () => ({ action: 'exit' })
+    },
+    {
+      name: 'quit',
+      description: 'Exit the chat.',
+      run: () => ({ action: 'exit' })
+    },
+    {
+      name: 'config',
+      description: 'Manage Skelp configuration.',
+      run: async ({ args, output }) => {
+        const command = configCommands.find(command => command.name === args[0])
+        if (!command) {
+          output.write(`Available config commands: ${configCommands.map(command => command.name).join(', ')}\n`)
+          return
+        }
+        return command.run({ args: args.slice(1), output })
+      }
+    }
+  ])
+  const configCommands = createConfigCommands({
+    getConfig: async () => config,
+    saveConfig: async (nextConfig) => {
+      Object.assign(config, nextConfig)
+      await saveConfig(config)
+    },
+    resetConfig: async () => {
+      Object.assign(config, await resetConfig())
+      await saveConfig(config)
+    },
+    setupConfig: async () => {
+      const nextConfig = await setupConfig(config, { input, output })
+      Object.assign(config, nextConfig)
+      await saveConfig(config)
+    }
+  })
+  const rl = readline.createInterface({
+    input,
+    output,
+    completer: createCompleter(commands)
+  })
   const confirmationState = { allowAll: false }
   const tools = [
     ...registerFsTools({ cwd, readlineInterface: rl }),
@@ -124,6 +175,7 @@ export async function runChat (options = {}) {
     if (prompt.trim()) await execute(prompt)
 
     console.log('Please provide your instructions or the task you wish me to perform.')
+    console.log('You can also use slash commands, such as /help or /exit. Type / and press Tab for autocomplete.')
     while (true) {
       let instruction
       try {
@@ -132,7 +184,15 @@ export async function runChat (options = {}) {
         break
       }
       if (!instruction) continue
-      if (instruction === 'exit' || instruction === 'quit') break
+      if (instruction.startsWith('/')) {
+        const commandResult = await executeSlashCommand(commands, instruction, { output })
+        if (!commandResult.found) {
+          console.log(`Unknown slash command: /${commandResult.parsed.name}. Use /help to list commands.`)
+        } else if (commandResult.result?.action === 'exit') {
+          break
+        }
+        continue
+      }
       await execute(instruction)
     }
   } finally {

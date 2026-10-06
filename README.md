@@ -36,6 +36,9 @@ skelp
 ### Slash Commands (Inside Shell)
 You can type convenient slash commands directly into the prompt:
 - `/help` — Display list of commands.
+- `/exit` or `/quit` — Exit the chat.
+
+Type `/` and press `Tab` to autocomplete available commands.
 
 ### Keyboard Shortcuts
 - **`Ctrl+N`**: Instantly starts a fresh session, clears conversation context history, and generates a new log file.

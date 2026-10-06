@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
-import os from 'os'
 import path from 'path'
 import process, { stdin as input, stdout as output } from 'process'
 import fs from 'fs/promises'
 import { ArgumentParser } from 'argparse'
 import { runChat } from '../packages/chat/index.js'
-import { mergeConfig, readPath, writePath, parseConfigValue } from '../packages/config/index.js'
+import { mergeConfig } from '../packages/config/index.js'
 import { detectProvider } from '../packages/detect/detect-provider.js'
 import { setupConfig } from '../packages/setup/index.js'
+import { createConfigCommands } from '../packages/config/commands.js'
 import { DEFAULTS } from './constants.js'
 import { homeDirectory, configPath, legacyConfigPath } from './constants.js'
 
@@ -30,23 +30,16 @@ async function writeConfig (config) {
 }
 
 async function runConfigCommand (args) {
-  const config = await readConfig()
-  if (args.action === 'list') {
-    console.log(JSON.stringify(config, null, 2))
-    return
-  }
-  if (args.action === 'get') {
-    console.log(readPath(config, args.key) ?? '')
-    return
-  }
-  if (args.action === 'set') {
-    writePath(config, args.key, parseConfigValue(args.value))
-    await writeConfig(config)
-    return
-  }
-  if (args.action === 'reset') {
-    await writeConfig(DEFAULTS)
-  }
+  const command = createConfigCommands({
+    getConfig: readConfig,
+    saveConfig: writeConfig,
+    resetConfig: () => writeConfig(DEFAULTS),
+    setupConfig: runSetupCommand
+  }).find(command => command.name === args.action)
+  await command.run({
+    args: args.action === 'get' ? [args.key] : args.action === 'set' ? [args.key, args.value] : [],
+    output: process.stdout
+  })
 }
 
 async function runSetupCommand () {
@@ -128,7 +121,10 @@ async function run (prompt, options = {}) {
     executionMode: options.executionMode || 'interactive',
     input,
     output,
-    runCommand
+    runCommand,
+    saveConfig: writeConfig,
+    resetConfig: async () => DEFAULTS,
+    setupConfig
   })
 }
 

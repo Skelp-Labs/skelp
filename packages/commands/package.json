@@ -1,0 +1,13 @@
+{
+  "name": "@skelp/commands",
+  "version": "0.1.0",
+  "description": "Generic slash command registry and readline completion.",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
