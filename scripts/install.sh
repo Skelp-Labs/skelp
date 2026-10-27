@@ -2,8 +2,9 @@
 
 set -euo pipefail
 
-if [[ "$(uname -s)" != "Linux" ]]; then
-  echo "This installer supports Linux only." >&2
+OS="$(uname -s)"
+if [[ "$OS" != "Linux" && "$OS" != "Darwin" ]]; then
+  echo "This installer supports Linux and macOS." >&2
   exit 1
 fi
 

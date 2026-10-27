@@ -25,9 +25,10 @@ npm link
 npm i -g https://github.com/skelp-labs/skelp
 ```
 
-Cumulus is a lightweight home server for managing you digital self.
-
 # Get started
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Skelp-Labs/skelp/refs/heads/main/scripts/install.sh | sudo sh
+curl -fsSL https://raw.githubusercontent.com/skelp-labs/skelp/main/scripts/install.sh | bash
+
+# Or, when cloned:
+bash ./scripts/install.sh
 ```
