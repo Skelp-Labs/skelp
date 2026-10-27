@@ -29,5 +29,5 @@ Cumulus is a lightweight home server for managing you digital self.
 
 # Get started
 ```sh
-curl -fsSL https://github.com/skelp-labs/skelp/raw/branch/main/scripts/install.sh | sudo sh
+curl -fsSL https://raw.githubusercontent.com/Skelp-Labs/skelp/refs/heads/main/scripts/install.sh | sudo sh
 ```
