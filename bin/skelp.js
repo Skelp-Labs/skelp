@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import path from 'path'
+import { createRequire } from 'module'
 import process, { stdin as input, stdout as output } from 'process'
 import fs from 'fs/promises'
 import { ArgumentParser } from 'argparse'
@@ -11,6 +12,8 @@ import { setupConfig } from '../packages/setup/index.js'
 import { createConfigCommands } from '../packages/config/commands.js'
 import { DEFAULTS } from './constants.js'
 import { homeDirectory, configPath, legacyConfigPath } from './constants.js'
+
+const { version } = createRequire(import.meta.url)('../package.json')
 
 async function readConfig () {
   try {
@@ -56,6 +59,7 @@ function parseArguments () {
     rawArgs.unshift('chat')
   }
   const parser = new ArgumentParser({ description: 'A minimal developer shell powered by an OpenAI-compatible model.' })
+  parser.add_argument('-v', '--version', { action: 'version', version: `skelp ${version}` })
   const config = parser.add_subparsers({ dest: 'command' })
   const promptParser = config.add_parser('run', { help: 'Run a task.' })
   promptParser.add_argument('prompt', { nargs: '*' })
@@ -78,7 +82,7 @@ function parseArguments () {
   action.add_parser('reset', { help: 'Reset configuration to defaults.' })
   action.add_parser('setup', { help: 'Interactively configure Skelp.' })
   config.add_parser('setup', { help: 'Interactively configure Skelp.' })
-  if (rawArgs[0] !== 'config' && rawArgs[0] !== 'setup' && rawArgs[0] !== 'run' && rawArgs[0] !== 'chat') rawArgs.unshift('run')
+  if (!['config', 'setup', 'run', 'chat', '--version', '-v'].includes(rawArgs[0])) rawArgs.unshift('run')
   return parser.parse_args(rawArgs)
 }
 
@@ -91,12 +95,12 @@ async function runCommand (command, commandCwd, onStream, background = false) {
   }
 
   return new Promise((resolve, reject) => {
-    exec(command, { cwd: commandCwd }, (error, stdout, stderr) => {
-      onStream?.(stdout)
-      onStream?.(stderr)
+    const child = exec(command, { cwd: commandCwd }, (error, stdout, stderr) => {
       if (error) reject(error)
       else resolve(stdout || stderr || 'Command completed.')
     })
+    child.stdout.on('data', chunk => onStream?.(chunk))
+    child.stderr.on('data', chunk => onStream?.(chunk))
   })
 }
 
