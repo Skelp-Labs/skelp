@@ -21,7 +21,11 @@ export function createToolRenderer (output = process.stdout) {
       const detail = args.command || args.path || ''
       output.write(`\n🛠️  ${name}${detail ? `: ${detail}` : ''}\n`)
     },
-    onToolResult ({ result, error }) {
+    onToolResult ({ name, result, error }) {
+      if (name === 'execute_command') {
+        output.write(`\n${error ? '❌ Command failed.' : '✅ Command completed.'}\n`)
+        return
+      }
       const summary = result?.type === 'image'
         ? `Attached image: ${result.path || 'image'}`
         : String(result || '').replace(/\s+/g, ' ').trim()

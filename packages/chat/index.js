@@ -115,6 +115,7 @@ export async function runChat (options = {}) {
       cwd,
       workspaceRoot: cwd,
       readlineInterface: rl,
+      onStream: (chunk) => output.write(chunk),
       autoApprove: executionMode === 'autopilot' || config.autoApprove,
       askForConfirmation: createConfirmationHandler(rl, confirmationState),
       runCommand

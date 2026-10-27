@@ -25,74 +25,9 @@ npm link
 npm i -g https://github.com/skelp-labs/skelp
 ```
 
-## Usage
+Cumulus is a lightweight home server for managing you digital self.
 
-### Interactive Shell
-Launch the interactive shell simply by running:
+# Get started
 ```sh
-skelp
-```
-
-### Slash Commands (Inside Shell)
-You can type convenient slash commands directly into the prompt:
-- `/help` — Display list of commands.
-- `/exit` or `/quit` — Exit the chat.
-
-Type `/` and press `Tab` to autocomplete available commands.
-
-### Keyboard Shortcuts
-- **`Ctrl+N`**: Instantly starts a fresh session, clears conversation context history, and generates a new log file.
-- **`Ctrl+C`**: Exit the shell.
-
-### One-Off Tasks
-Run tasks directly from your default shell:
-```sh
-mkdir -p ~/.skelp/workspace/newproject && cd ~/.skelp/workspace/newproject
-skelp "Write a summary of the latest AI research papers to papers.md"
-skelp "Change the server to http://localhost:5678"
-skelp "Which models are available?"
-skelp "Create a simple electron app and start it"
-skelp "Download https://samplelib.com/csv/sample-10mb.csv"
-```
-
-### Configuration Commands
-Manage settings directly from your terminal:
-```sh
-skelp config list
-skelp config get tone
-skelp config set server http://localhost:5678
-skelp config set tone "formal and professional"
-skelp config set soul thorough
-skelp config set soul /absolute/path/to/my-soul.md
-skelp config set userSystem "Always explain risky changes before applying them."
-skelp config set autoApprove true
-skelp config reset
-```
-
-## Configuration
-
-Settings are preserved globally in `~/.skelprc`:
-```json
-{
-  "server": "auto",
-  "primaryModel": "local-ai-model",
-  "tone": "concise, friendly and helpful",
-  "soul": "standard",
-  "userSystem": "",
-  "autoApprove": false
-}
-```
-
-### Auto-Detection
-
-By default, `server` is set to `"auto"`. On launch, Skelp probes known local LLM providers in order:
-
-1. **LM Studio** — `http://localhost:1234`
-2. **Ollama** — `http://localhost:11434`
-
-The first provider that responds is saved to your config along with the first available model. If none are found, you'll be prompted to enter a server URL manually.
-
-To re-trigger auto-detection, set the server back to `"auto"`:
-```sh
-skelp config set server auto
+curl -fsSL https://github.com/skelp-labs/skelp/raw/branch/main/scripts/install.sh | sudo sh
 ```
