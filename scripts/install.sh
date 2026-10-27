@@ -24,7 +24,7 @@ export NVM_DIR
 
 if [[ ! -s "$NVM_DIR/nvm.sh" ]]; then
   echo "Installing nvm..."
-  curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.7/install.sh | bash
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh | bash
 fi
 
 if [[ ! -s "$NVM_DIR/nvm.sh" ]]; then
